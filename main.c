@@ -163,15 +163,21 @@ EnableInterrupts;
  
  // X axis
  SCI1_OutString("Gyro Gx:");
- SCI1_OutUDec((unsigned short) gxraw[0]); 
+ float angularRateX = mxraw[0] * 0.07;
+ float angleGyroX = angularRateX * 0.02; 
+ SCI1_OutUDec((unsigned short) angleGyroX); 
  SCI1_OutString("\r\n"); 
  // Y axis	 
  SCI1_OutString(" Gy:"); 
- SCI1_OutUDec((unsigned short) gyraw[0]) ;
+ float angularRateY = myraw[0] * 0.07;
+ float angleGyroY = angularRateY * 0.02; 
+ SCI1_OutUDec((unsigned short) angleGyroY) ;
  SCI1_OutString("\r\n"); 
  // Z axis	 
  SCI1_OutString(" Gz:"); 
- SCI1_OutUDec((unsigned short) gzraw[0]) ;       
+ float angularRateZ = mzraw[0] * 0.07;
+ float angleGyroZ = angularRateZ * 0.02; 
+ SCI1_OutUDec((unsigned short) mzraw[0]) ;      
  SCI1_OutString("\r\n");
  // ACCELEROMETER ADCL345 --------------------------------------------------------------------------------------------------------------
  
@@ -196,20 +202,18 @@ EnableInterrupts;
  hm5883_getrawdata(&mxraw, &myraw, &mzraw);
 
  // X axis 
- SCI1_OutString("Magn Mx:"); 
- SCI1_OutUDec((unsigned short) mxraw[0]); 
+ SCI1_OutString("Magn Mx:");
+ SCI1_OutUDec((unsigned short) mxraw[0]);
  SCI1_OutString("\r\n");
  // Y axis
  SCI1_OutString(" My:"); 
- SCI1_OutUDec((unsigned short) myraw[0]) ;
+ SCI1_OutUDec((unsigned short) myraw[0]);
  SCI1_OutString("\r\n");
  // Z axis
  SCI1_OutString(" Mz:"); 
- SCI1_OutUDec((unsigned short) mzraw[0]) ;       
+ SCI1_OutUDec((unsigned short) mzraw[0]);      
  SCI1_OutString("\r\n\r\n\r\n");
  }
- 
- 
   /*    Not using the laser IIC, not compatible with this lasr
   laser_data (&Dist);
   SCI1_OutString("\r\n laser:");
@@ -258,7 +262,6 @@ void hm5883_getrawdata(int *mxraw, int *myraw, int *mzraw)
 }  
 
 // Accelerometer ----------------------------------------------------------------------------------------------------------------------
-
 
 void accel_init (void){
   
