@@ -31,12 +31,11 @@
 #include "pll.h"	  // Header File - pll.c function declaration (not a built in function)
 #include "sci1.h"         // Header File - sci1.c function declaration not a built in
 #include "l3g4200.h"      // register's definitions    ( not used by ed )
-
+#include "LCD.h"
 volatile uint8_t alarmSignaled1 = 0; /* Flag set when alarm 1 signaled */
 volatile uint16_t currentTime1 = 0; /* variables private to timeout routines */
 uint16_t alarmTime1 = 0;
 volatile uint8_t alarmSet1 = 0;
-
 // void INTERRUPT timer6(void);
 void setAlarm1(uint16_t msDelay1);
 void delay1(uint16_t msDelay1);
@@ -45,30 +44,22 @@ void Init_TC6 (void);
 // CONSTANTS ---------------------------------------------------------------------------------------------------------------------------
 #define laser_wr  0xc4
 #define laser_rd  0xc5
-
 #define gyro_wr 0xD2
 #define gyro_rd 0xD3
-
-#define accel_wr 0xA6    //
-#define accel_rd 0xA7    // 
+#define accel_wr 0xA6    
+#define accel_rd 0xA7    
 #define ADXL345_TO_READ 6
- 
 #define ADXL345_POWER_CTL 0x2D
 #define ADXL345_DATAX0 0x32
 #define ADXL345_DATA_FORMAT 0x31
- 
 #define ADXL345_OFSX 0x1E
 #define ADXL345_OFSY 0x1F
 #define ADXL345_OFSZ 0x20
- 
 #define ALPHA 0.5
-
 #define magnet_wr  0x3C
 #define magnet_rd  0x3D
-
 #define HM5883_MODE_REG 0x02
 #define HM5883_DATAX0 0x03
-
 #define BUFF_SIZE	100
 
 // CHARACTER INITIATION -------------------------------------------------------------------------------------------------------------
@@ -106,18 +97,18 @@ uint8_t Lidar2ByteRead = 0x8f;
 uint16_t Dist;
 
 // MAIN FUNCTION ----------------------------------------------------------------------------------------------------------------------
-void main(void) {
-  /* put your own code here */
+void main(void) {       
+/* put your own code here */
  	
  char  myString[20];
  char character;
   
  uint8_t D2W, D3R, WHO, who;
  int  res1, res2,  res3, *p;
+ //int toPrint[9] = {*gxraw, *gyraw, *gzraw,*axraw, *ayraw, *azraw,*mxraw, *myraw, *mzraw};
  float acc;
  
- // The next 4 lines just to make sure all is working
- // are not needed for final prograM
+ // The next 4 lines just to make sure all is working (are not needed for final program)
  DDRB= 0xFF;   /* Port B output */
  DDRJ= 0xFF;   // Port J to Output
  PTJ = 0x00;   // enable LEDs
@@ -127,7 +118,8 @@ void main(void) {
 // File is a general file and will say 48MHz but its modified to run on 24MHz
  PLL_Init();  
  
-EnableInterrupts;
+ // Enable the interrupts
+ EnableInterrupts;
 
  // This program will send the gyro, accelerometer adn magnetometer data
  // to a serial port. Set it to 9600 bauds 
@@ -149,71 +141,108 @@ EnableInterrupts;
  gyro_init();     // l3g4200 setup
  accel_init();
  magnet_init();
-
+                   
  // Start forever loop waiting for interrupt
- while(1) {
-	 
- // Delay = 3000 ms for readability and time for change	 
- delay1(3000); 
-	 
- // GYROSCOPE L3G4200d---------------------------------------------------------------------------------------------------------------- 
-  
- // Obtain Raw Data fotr GYRO
- l3g4200d_getrawdata( &gxraw, &gyraw, &gzraw) ;        
- 
- // X axis
- SCI1_OutString("Gyro Gx:");
- float angularRateX = mxraw[0] * 0.07;
- float angleGyroX = angularRateX * 0.02; 
- SCI1_OutUDec((unsigned short) angleGyroX); 
- SCI1_OutString("\r\n"); 
- // Y axis	 
- SCI1_OutString(" Gy:"); 
- float angularRateY = myraw[0] * 0.07;
- float angleGyroY = angularRateY * 0.02; 
- SCI1_OutUDec((unsigned short) angleGyroY) ;
- SCI1_OutString("\r\n"); 
- // Z axis	 
- SCI1_OutString(" Gz:"); 
- float angularRateZ = mzraw[0] * 0.07;
- float angleGyroZ = angularRateZ * 0.02; 
- SCI1_OutUDec((unsigned short) mzraw[0]) ;      
- SCI1_OutString("\r\n");
- // ACCELEROMETER ADCL345 --------------------------------------------------------------------------------------------------------------
- 
- // Obtain raw data
- adxl345_getrawdata( &axraw, &ayraw, &azraw) ;  
+  while(1) {
+  	 
+   // Delay = 3000 ms for readability and time for change	 
+   delay1(3000); 
+  	 
+   // GYROSCOPE L3G4200d---------------------------------------------------------------------------------------------------------------- 
+    
+   // Obtain Raw Data fotr GYRO
+   l3g4200d_getrawdata( &gxraw[0], &gyraw[0], &gzraw[0]) ;        
+   
+   // X axis
+   SCI1_OutString("Gyro Gx:");
+   SCI1_OutUDec((unsigned short) gxraw[0]); 
+   SCI1_OutString("\r\n"); 
+   
+   // Y axis	 
+   SCI1_OutString(" Gy:"); 
+   SCI1_OutUDec((unsigned short) gyraw[0]) ;
+   SCI1_OutString("\r\n"); 
+   
+   // Z axis	 
+   SCI1_OutString(" Gz:"); 
+   SCI1_OutUDec((unsigned short) gzraw[0]) ;      
+   SCI1_OutString("\r\n");
+   
+   // ACCELEROMETER ADCL345 --------------------------------------------------------------------------------------------------------------
+   
+   // Obtain raw data
+   adxl345_getrawdata( &axraw[0], &ayraw[0], &azraw[0]) ;  
 
- // X axis
- SCI1_OutString("Accel Ax:");
- SCI1_OutUDec((unsigned short) axraw[0]); 
- SCI1_OutString("\r\n"); 
- // Y axis 
- SCI1_OutString(" Ay:"); 
- SCI1_OutUDec((unsigned short) ayraw[0]) ;
- SCI1_OutString("\r\n"); 
- // Z axis	 
- SCI1_OutString(" Az:"); 
- SCI1_OutUDec((unsigned short) azraw[0]) ;       
- SCI1_OutString("\r\n"); 
- // MAGNETOMETER HM5883 ----------------------------------------------------------------------------------------------------------------
- 
- // Obtain raw data
- hm5883_getrawdata(&mxraw, &myraw, &mzraw);
+   // X axis
+   SCI1_OutString("Accel Ax:");
+   SCI1_OutUDec((unsigned short) axraw[0]); 
+   SCI1_OutString("\r\n"); 
+   // Y axis 
+   SCI1_OutString(" Ay:"); 
+   SCI1_OutUDec((unsigned short) ayraw[0]) ;
+   SCI1_OutString("\r\n"); 
+   // Z axis	 
+   SCI1_OutString(" Az:"); 
+   SCI1_OutUDec((unsigned short) azraw[0]) ;       
+   SCI1_OutString("\r\n"); 
+   
+   // MAGNETOMETER HM5883 ----------------------------------------------------------------------------------------------------------------
+   
+   // Obtain raw data
+   hm5883_getrawdata(&mxraw[0], &myraw[0], &mzraw[0]);
 
- // X axis 
- SCI1_OutString("Magn Mx:");
- SCI1_OutUDec((unsigned short) mxraw[0]);
- SCI1_OutString("\r\n");
- // Y axis
- SCI1_OutString(" My:"); 
- SCI1_OutUDec((unsigned short) myraw[0]);
- SCI1_OutString("\r\n");
- // Z axis
- SCI1_OutString(" Mz:"); 
- SCI1_OutUDec((unsigned short) mzraw[0]);      
- SCI1_OutString("\r\n\r\n\r\n");
- }
+   // X axis 
+   SCI1_OutString("Magn Mx:");
+   SCI1_OutUDec((unsigned short) mxraw[0]);
+   SCI1_OutString("\r\n");
+   // Y axis
+   SCI1_OutString(" My:"); 
+   SCI1_OutUDec((unsigned short) myraw[0]);
+   SCI1_OutString("\r\n");
+   // Z axis
+   SCI1_OutString(" Mz:"); 
+   SCI1_OutUDec((unsigned short) mzraw[0]);      
+   SCI1_OutString("\r\n\r\n\r\n");
+   
+    // PRINT TO LCD -----------------------------------------------------------------------------------------------------------------------------
+    openLCD();
+    
+    // Print the gyroscope information
+    putsLCD("Gyro X=");
+    putcLCD(gxraw[0]);
+    putsLCD("  Gyro Y=");
+    putcLCD(gyraw[0]);
+    putsLCD("  Gyro Z=");
+    putcLCD(gzraw[0]);
+    cmd2LCD(0xC0);         // New line function
+    
+    // Print the accelerometer information
+    putsLCD("Accel X=");
+    putcLCD(axraw[0]);
+    putsLCD("  Accel Y=");
+    putcLCD(ayraw[0]);
+    putsLCD("  Accel Z=");
+    putcLCD(azraw[0]);
+    cmd2LCD(0xC0);         // New line function
+    
+    
+     // Print the magnetometer information
+    putsLCD("Mag X=");
+    putcLCD(mxraw[0]);
+    putsLCD("  Mag Y=");
+    putcLCD(myraw[0]);
+    putsLCD("  Mag Z=");
+    putcLCD(mzraw[0]);
+    cmd2LCD(0xC0);         // New line function
+    
+    // FINISH PRINTING TO LCD ----------------------------------------------------------------------------------------------------------------
+  }
+   
+ // PRINT TO LCD -----------------------------------------------------------------------------------------------------------------------------
+ 
+  //toPrint []= {gxraw[0],gyraw[0],gzraw[0],axraw[0],ayraw[0],azraw[0],mxraw[0],myraw[0],mzraw[0]};
+ 
+ 
   /*    Not using the laser IIC, not compatible with this lasr
   laser_data (&Dist);
   SCI1_OutString("\r\n laser:");
@@ -224,6 +253,10 @@ EnableInterrupts;
 
 // END MAIN ----------------------------------------------------------------------------------------------------------------------------
 
+
+
+
+// COMPLEMENTARY FUNCTIONS=============================================================
 // Magnetometer -----------------------------------------------------------------------------------------------------------------------
 
 void magnet_init(void){  
@@ -425,7 +458,7 @@ void delay1(uint16_t msec)
     while(!alarmSignaled1) {};
 }
 
-/*  Interrupt   EMN */
+/*  Interrupt   EMN *///=======================================================================
 
 // interrupt(((0x10000-Vtimch7)/2)-1) void TC7_ISR(void){
 // the line above is to make it portable between differen
