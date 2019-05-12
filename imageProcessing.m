@@ -1,7 +1,7 @@
 % Group 4 - 642 
 % Giorgio G
 %
-% LIDAR SHAPE DETECTION - REAL TIME DRAWING
+% LIDAR SHAPE DETECTION - REAL TIME DRAWING AND AREA VALUE
 %
 % This code will take values in meters from the LIDAR 
 % It will actegorize in the matter of:
@@ -29,15 +29,15 @@ clc;
 %
 % Plan:
 % Two for loops, x and then y. fill it going down so..
-xMax = 8; %= 200 
-yMax = 4; %= 100
+xMax = 4; %= 200 
+yMax = 2; %= 100
 
 % START ====================================================
 % First we get value s first! 
 
 % Set terminator to CR so it waits longer and 
 % doesnt produce errors
-s = serial('COM10','BaudRate',9600);
+s = serial('COM2','BaudRate',9600);
 
 % Set terminator to CR so it waits longer and 
 % doesnt produce errors
@@ -55,6 +55,9 @@ printImg(imageMatrix);
 % If odd: Goes from top to bottom
 % If even: Goes from bottom to top
 yDirection = 1;
+
+% For the total area counter,use variable to keep track
+totalArea = 0;
 
 for i = 1:xMax
     
@@ -78,16 +81,23 @@ for i = 1:xMax
             % CLOSE PORT ==============================================
 
             % Change number collected from string to number
-            number = str2num(a);
+            distance = str2num(a);
 
             % If distance is greater than 1.4 meters, there is
             % no object there and the matrix stays 0
-            if (number > 1.4 & number <= 40)
+            if (distance > 1.4 & distance <= 40)
                 imageMatrix(j,i) = 0;
 
             % If distance is less than 1.4, there is an object
-            elseif (number <= 1.4)
+            elseif (distance <= 1.4)
                 imageMatrix(j,i) = 1;
+                
+                % If object is detected, calculate the pixel area
+                % using the exact distance
+                pixelArea = calcPixelArea(distance,yMax,xMax);
+                
+                % Now add it up to the totalArea counter;
+                totalArea = totalArea + pixelArea;
 
             % In circumstances where the nearest thing is more
             % than 40m away, give it a color of 0.5 where it will
@@ -121,16 +131,23 @@ for i = 1:xMax
             % CLOSE PORT ==============================================
 
             % Change number collected from string to number
-            number = str2num(a);
+            distance = str2num(a);
 
             % If distance is greater than 1.4 meters, there is
             % no object there and the matrix stays 0
-            if (number > 1.4 & number <= 40)
+            if (distance > 1.4 & distance <= 40)
                 imageMatrix(j,i) = 0;
 
             % If distance is less than 1.4, there is an object
-            elseif (number <= 1.4)
+            elseif (distance <= 1.4)
                 imageMatrix(j,i) = 1;
+                
+                % If object is detected, calculate the pixel area
+                % using the exact distance
+                pixelArea = calcPixelArea(distance,yMax,xMax);
+                
+                % Now add it up to the totalArea counter;
+                totalArea = totalArea + pixelArea;
 
             % In circumstances where the nearest thing is more
             % than 40m away, give it a color of 0.5 where it will
@@ -151,6 +168,9 @@ end
 
 % Show final image 
 printImg(imageMatrix);
+
+% Display total accumulated area
+disp(['Total area of the shape is ',num2str(totalArea),' meter squared']);
 % END PRINT THE SHAPE =============================================
 
 % Function to print image
@@ -169,4 +189,14 @@ function printImg(matrix)
     % Use grayscale color and flip it to make black (1)/on
     % and white (0)/off
     colormap(flipud(gray));
+end
+
+% Function to find pixel area
+function pixelArea = calcPixelArea(distance,yMax,xMax)
+
+    % degrees to radians is to multiply by pi/180
+    lengthAzimuth = 2*tan(50*pi/180)*distance;
+    lengthElevation = 2*tan(25*pi/180)*distance;
+    totalArea = lengthAzimuth * lengthElevation;
+    pixelArea = totalArea / (yMax * xMax);
 end
