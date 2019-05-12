@@ -7,6 +7,12 @@
 %   + {0 - 1.3} = 1;
 %   + {1.3 - 40} = 0;
 
+% CLEANING UP ==============================================
+clf;
+clf reset;
+clear;
+clc;
+
 % SETUP ====================================================
 % Each lidar reading represents a movement. From calculation:
 % Resolution = 0.5 deg
@@ -25,14 +31,15 @@ yMax = 4; %= 100
 
 % Set terminator to CR so it waits longer and 
 % doesnt produce errors
-s = serial('COM8','BaudRate',9600);
+s = serial('COM6','BaudRate',9600);
 
 % Set terminator to CR so it waits longer and 
 % doesnt produce errors
 set(s,'Terminator','CR');
 
-% Set the image matrix to an empty matrix
+% Set the image matrix to an empty matrix and then print it out
 imageMatrix = zeros(yMax,xMax);
+printImg(imageMatrix);
 
 for i = 1:xMax
     for j = 1:yMax
@@ -56,12 +63,21 @@ for i = 1:xMax
         else
             disp("Undefined - Out of Range");
         end
+        
+        % Printing in real time
+        printImg(imageMatrix);
     end
 end
 % CLOSE PORT ==============================================
 
 % FINAL --> Show as an image
-imagesc(imageMatrix)
-colormap(flipud(gray));
-colorbar;
+printImg(imageMatrix);
 
+% Function to print image
+function printImg(matrix)
+    figure(1);
+    imagesc(matrix)
+    caxis([0,1]);
+    colormap(flipud(gray));
+    %colorbar;
+end
