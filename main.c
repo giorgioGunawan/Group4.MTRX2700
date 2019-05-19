@@ -1,14 +1,17 @@
 // DIRECTORIES:  CTRL + F    --> ADD THESE NAME TO JUMP TO THAT FUNCTION / PART
 
-// MAIN                            |   mainShortcut
-// GYRO                            |   gyroShortcut
-// ACCELERO                    |  acceleroShortcut
-// MAGNETO                    |  magnetoShortcut
-// MAG ORIENT                |  magnetoOrientationShortcut
-// LCD PRINT                    |  printLCDShortcut
-// ACCELERO FUNCTION |  obtainValueFromAccelero
-// ACCELERO TILT            |  acceleroTiltingShortcut
-// INTERRUPT VECTORS  |  interruptGotoShortcut
+// MAIN                  |   mainShortcut
+// GYRO                  |   gyroShortcut
+// ACCELERO              |  acceleroShortcut
+// MAGNETO               |  magnetoShortcut
+// MAG ORIENT            |  magnetoOrientationShortcut
+// LCD PRINT             |  printLCDShortcut
+// ACCELERO FUNCTION     |  obtainValueFromAccelero
+// ACCELERO TILT         |  acceleroTiltingShortcut
+// INTERRUPT VECTORS     |  interruptGotoShortcut
+// FUNCTION DECLARATIONS | funcdecShortcut
+// KEYPAD INTERFACE      | keypadInterfaceShortcut
+// KEYPAD VALUE FUNC     | getValueShortcut
 // 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -92,6 +95,7 @@ int myraw[BUFF_SIZE],mzraw[BUFF_SIZE];
 int k;
 
 // FUNCTION DECLARATION ---------------------------------------------------------------------------------------------------------------
+// funcdecShortcut
 void adxl345_getrawdata(int *axraw, int *ayraw, int *azraw);
 void accel_init(void);
 void accel_test(void);
@@ -111,6 +115,13 @@ int getHeading(int *mxraw, int *myraw);
 float getElevation(int *axraw, int *ayraw ,int *azraw);
 void l3g4200d_getrawdataDPS(int *gxraw, int *gyraw, int *gzraw);
 float getDPS(int *graw);
+void printMainMessage(void);
+void LCDDelay(unsigned int time);
+void printGyroInfo(float gyroAz, float gyroEl);
+void printAcceleroInfo(float elevation);
+void printMagnetoInfo(float magnetoAz,float magnetoEl) ;
+void printDistance(float distance);
+int getKeyValue(void);
 
 unsigned char LidarWriteAddr = 0xc4;
 uint8_t LidarReadAddr = 0xc5;
@@ -127,6 +138,7 @@ void main(void){
  
  uint8_t D2W, D3R, WHO, who;
  int  res1, res2,  res3, *p;
+ int keypadVal;
  float acc;
  float heading;
  float elevation;
@@ -364,41 +376,53 @@ void main(void){
    SCI1_OutString("\r\n\r\n\r\n");  */  
    
    
+   // KEYPAD INTERFACE ---------------------------------------------------------------------------------------------------
+   // keypadInterfaceShortcut
+   
+   // keypadVal = 1 or 2 or 3 or 4 or stay at 0
+   keypadVal = getKeyValue();   
+   
     // PRINT TO LCD -----------------------------------------------------------------------------------------------------------------------------
     // printLCDShortcut
-    /*
-    openLCD();
+        
+    // if keypad no input (keypadVal == 0)
+    if(keypadVal == 0){
+      printMainMessage(); 
+    }
     
-    // Print the gyroscope information
-    putsLCD("Gyro X=");
-    putcLCD(gxraw[0]);
-    putsLCD("  Gyro Y=");
-    putcLCD(gyraw[0]);
-    putsLCD("  Gyro Z=");
-    putcLCD(gzraw[0]);
-    cmd2LCD(0xC0);         // New line function
+    // if keypad is 1 (gyro)
+    // mock gyro values for testing:
+    // gyroAz = 12.3;
+    // gyroEl = 24.5;
+    else if(keypadVal == 1){
+    // printGyroInfo(float gyroAz,float gyroEl);
+    // printGyroInfo(12.4,44.6);      // DEBUGGING ONLY !!!!!!!!!!!!!!!!!
+    }
+
+    // if keypad is 2 (accelero)
+    // accelero value is elevation from previous function
+    else if(keypadVal == 2){
+    // printAcceleroInfo(elevation);
+    // printAcceleroInfo(12.3);     // DEBUGGING ONLY!!!!!!!!!!!!!!!!!
+    }
     
-    // Print the accelerometer information
-    putsLCD("Accel X=");
-    putcLCD(axraw[0]);
-    putsLCD("  Accel Y=");
-    putcLCD(ayraw[0]);
-    putsLCD("  Accel Z=");
-    putcLCD(azraw[0]);
-    cmd2LCD(0xC0);         // New line function
+    // if keypad is 3 (magneto)
+    // magneto information still in process so 
+    // mock magneto value
+    // magnetoAz = 17.8
+    // magentoEl = -70.4
+    else if(keypadVal == 3){
+    // printMagnetoInfo(float magnetoAz, float magnetoEl);
+    // printMagnetoInfo(12.4,44.6);      // DEBUGGING ONLY !!!!!!!!!!!!!!!!!
+    }
+    
+    // if keypad is 4, display distance
+    // mock distance = 1.2m
+    else if(keypadVal == 4){
+    // printDistance(1.2);
+    }
     
     
-     // Print the magnetometer information
-    putsLCD("Mag X=");
-    putcLCD(mxraw[0]);
-    putsLCD("  Mag Y=");
-    putcLCD(myraw[0]);
-    putsLCD("  Mag Z=");
-    putcLCD(mzraw[0]);
-    cmd2LCD(0xC0);         // New line function   
-    
-    
-    */
     // FINISH PRINTING TO LCD ----------------------------------------------------------------------------------------------------------------
   }
  
@@ -417,6 +441,191 @@ void main(void){
 
 
 // COMPLEMENTARY FUNCTIONS=============================================================
+// Print Main Message on LCD
+
+void LCDDelay(unsigned int time){
+    unsigned int i, j;
+    
+    for(i=0; i<time; i++)
+      for(j=0;j<1000;j++);
+ }
+ 
+void printMainMessage(void){
+
+  // First Open LCD
+  openLCD();
+  
+  // Might need to position to top left 
+  cmd2LCD(0x80);
+  
+  // Write to LCD's first line
+  putsLCD("1 GYRO  2 ACCELERO");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // New line same screen
+  cmd2LCD(0xC0); 
+  
+  // Write to LCD's second line
+  putsLCD("3 MAGNET  4 DIST");
+  
+  // LASTLY CLEAR THE SCREEN
+  cmd2LCD(0x01);
+}
+
+void printGyroInfo(float gyroAz,float gyroEl){
+
+  // First Open LCD
+  openLCD();
+  
+  // Might need to position to top left 
+  cmd2LCD(0x80);
+  
+  // Write to LCD's first line
+  putsLCD("Gyro Az: ");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // Put the azimuth information on the first line
+  putcLCD(gyroAz);
+  
+  // New line same screen
+  cmd2LCD(0xC0); 
+  
+  // Write to LCD's second line
+  putsLCD("Gyro El");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // Put the azimuth information on the first line
+  putcLCD(gyroEl);
+  
+  // LASTLY CLEAR THE SCREEN
+  cmd2LCD(0x01);
+}
+
+void printAcceleroInfo(float elevation){
+  
+  // First Open LCD
+  openLCD();
+  
+  // Might need to position to top left 
+  cmd2LCD(0x80);
+  
+  // Write to LCD's first line
+  putsLCD("Accelero El: ");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // Put the azimuth information on the first line
+  putcLCD(elevation);
+  
+  // LASTLY CLEAR THE SCREEN
+  cmd2LCD(0x01);
+}
+
+void printMagnetoInfo(float magnetoAz,float magnetoEl){
+
+  // First Open LCD
+  openLCD();
+  
+  // Might need to position to top left 
+  cmd2LCD(0x80);
+  
+  // Write to LCD's first line
+  putsLCD("Magneto Az: ");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // Put the azimuth information on the first line
+  putcLCD(magnetoAz);
+  
+  // New line same screen
+  cmd2LCD(0xC0); 
+  
+  // Write to LCD's second line
+  putsLCD("Magneto El");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // Put the azimuth information on the first line
+  putcLCD(magnetoEl);
+  
+  // LASTLY CLEAR THE SCREEN
+  cmd2LCD(0x01);
+}
+
+void printDistance(float distance){
+  // First Open LCD
+  openLCD();
+  
+  // Might need to position to top left 
+  cmd2LCD(0x80);
+  
+  // Write to LCD's first line
+  putsLCD("Distance: ");
+  
+  // Delay 
+  LCDDelay(1);
+  
+  // Put the azimuth information on the first line
+  putcLCD(distance);
+  
+  // LASTLY CLEAR THE SCREEN
+  cmd2LCD(0x01);
+}
+
+
+// Get value from keypad ------------------------------------------------------------------------------------------
+// getValueShortcut
+
+int getKeyValue(void){
+
+  // rmask, cmask --> row mask and column mask 
+  // row and col are just counters
+  char rmask, cmask, row, col;
+  char temp, keycode;
+  
+  DDRA = 0xF0; // lower 4 pins for input
+  
+  // Start forever loop to find the pressed key
+  while(1){
+    rmask = 0xEF; // 1110 1111 mask
+    
+    // Scan rows 
+    for(row = 0; row <=3; row++){
+      cmask = 0x01; // 0000 0001
+      PORTA &= rmask; // to select current row
+      
+      // Now scan columns 
+      for(col = 0; col <= 3;col++){
+      
+        // IF PORT A IS LOW, SPECIFIC KEY keypad [row,col] IS PRESSED
+        if(!(PORTA & cmask)){
+          delayby10us(1000); // gives 10 millisecond
+          
+          // Check the same key again - part of keypad debouncing (software way)
+          // If PORT A still low, means it makes sure that keypad is actually pressed! (debounced)
+          if(!(PORTA & cmask)){
+            
+            // Now that particular keypad is actually pressed, return this 
+            keycode = row + (col-1)*4 - 1;
+            return keycode;
+          }      
+        }
+        cmask = cmask << 1;        
+      }
+      rmask = (rmask << 1) | 0x0F;     
+    }
+  }
+}
+
 // Magnetometer -----------------------------------------------------------------------------------------------------------------------
 
 void magnet_init(void){  
@@ -519,7 +728,6 @@ float getElevation(int *axraw, int *ayraw ,int *azraw){
 // GYRO --------------------------------------------------------------------------------------------------------------------------------------
 
 // test the precense of Gyro , should get 211 on return 
-// 
 
 void gyro_test(void) {
  int res1,who; 
