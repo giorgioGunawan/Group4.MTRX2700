@@ -35,6 +35,10 @@ int intToStr (int num, char str[], int d){
 }
 
 // Converts a floating point number to string. 
+// INPUT:
+// n = float number to be converted
+// res = string for output
+// afterpoint = decimal places
 void floatToStr(float n, char *res, int afterpoint) 
 { 
     // Extract integer part 
