@@ -1,3 +1,17 @@
+// DIRECTORIES:  CTRL + F    --> ADD THESE NAME TO JUMP TO THAT FUNCTION / PART
+
+// MAIN                            |   mainShortcut
+// GYRO                            |   gyroShortcut
+// ACCELERO                    |  acceleroShortcut
+// MAGNETO                    |  magnetoShortcut
+// MAG ORIENT                |  magnetoOrientationShortcut
+// LCD PRINT                    |  printLCDShortcut
+// ACCELERO FUNCTION |  obtainValueFromAccelero
+// ACCELERO TILT            |  acceleroTiltingShortcut
+// INTERRUPT VECTORS  |  interruptGotoShortcut
+// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Demonstration functions for IIC to read inertial sensor values
 //
 // The program will send read values to the serial port.
@@ -26,12 +40,14 @@
 
 // FILE INCLUDE, DECLARATIONS ----------------------------------------------------------------------------------------------------------
 #include <hidef.h>        // common defines and macros */
+#include <math.h>
 #include "derivative.h"   // derivative-specific definitions */
 #include "iic.h"          // Header File - iic.c function declaration (not a built in func)
 #include "pll.h"	  // Header File - pll.c function declaration (not a built in function)
 #include "sci1.h"         // Header File - sci1.c function declaration not a built in
 #include "l3g4200.h"      // register's definitions    ( not used by ed )
 #include "LCD.h"
+
 volatile uint8_t alarmSignaled1 = 0; /* Flag set when alarm 1 signaled */
 volatile uint16_t currentTime1 = 0; /* variables private to timeout routines */
 uint16_t alarmTime1 = 0;
@@ -91,28 +107,48 @@ void gyro_test(void);
 void laser_init (void);
 void laser_data(uint16_t *Dist) ;
 
+int getHeading(int *mxraw, int *myraw);
+float getElevation(int *axraw, int *ayraw ,int *azraw);
+void l3g4200d_getrawdataDPS(int *gxraw, int *gyraw, int *gzraw);
+float getDPS(int *graw);
+
 unsigned char LidarWriteAddr = 0xc4;
 uint8_t LidarReadAddr = 0xc5;
 uint8_t Lidar2ByteRead = 0x8f;
 uint16_t Dist;
 
 // MAIN FUNCTION ----------------------------------------------------------------------------------------------------------------------
-void main(void) {       
+// mainShortcut
+void main(void){       
 /* put your own code here */
  	
- char  myString[20];
+ char myString[20];
  char character;
-  
+ 
  uint8_t D2W, D3R, WHO, who;
  int  res1, res2,  res3, *p;
- //int toPrint[9] = {*gxraw, *gyraw, *gzraw,*axraw, *ayraw, *azraw,*mxraw, *myraw, *mzraw};
  float acc;
+ float heading;
+ float elevation;
+ float negativeElevation;
+ float negativeHeading;
+ int negAxRaw;
+ int negAyRaw;
+ int negAzRaw;
+ int negMxRaw;
+ int negMyRaw;
+ int negMzRaw;
+ int negGxRaw;
+ int negGyRaw;
+ int negGzRaw;
+ 
  
  // The next 4 lines just to make sure all is working (are not needed for final program)
  DDRB= 0xFF;   /* Port B output */
  DDRJ= 0xFF;   // Port J to Output
  PTJ = 0x00;   // enable LEDs
  PORTB=0x55;     // debuging info
+ 
  
 // Make sure we are running at 24 Mhz,no input, no output.
 // File is a general file and will say 48MHz but its modified to run on 24MHz
@@ -145,66 +181,192 @@ void main(void) {
  // Start forever loop waiting for interrupt
   while(1) {
   	 
-   // Delay = 3000 ms for readability and time for change	 
-   delay1(3000); 
+   // Delay  for readability and time for change (INSPECTION)	 
+   delay1(10000); 
   	 
    // GYROSCOPE L3G4200d---------------------------------------------------------------------------------------------------------------- 
-    
+   // gyroShortcut 
+   
    // Obtain Raw Data fotr GYRO
-   l3g4200d_getrawdata( &gxraw[0], &gyraw[0], &gzraw[0]) ;        
-   
-   // X axis
-   SCI1_OutString("Gyro Gx:");
-   SCI1_OutUDec((unsigned short) gxraw[0]); 
+   l3g4200d_getrawdata( &gxraw[0], &gyraw[0], &gzraw[0]) ; 
+
+   // Newline
    SCI1_OutString("\r\n"); 
+   // X axis   
+   if(gxraw[0] <= 0){
+    negGxRaw = -1*gxraw[0];
+    SCI1_OutString(" Gx: -");
+    SCI1_OutUDec((int) negGxRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Gx:"); 
+    SCI1_OutUDec((unsigned short) gxraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
    
-   // Y axis	 
-   SCI1_OutString(" Gy:"); 
-   SCI1_OutUDec((unsigned short) gyraw[0]) ;
-   SCI1_OutString("\r\n"); 
+   // Y axis 
+   if(gyraw[0] <= 0){
+    negGyRaw = -1*gyraw[0];
+    SCI1_OutString(" Gy: -");
+    SCI1_OutUDec((int) negGyRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Gy:"); 
+    SCI1_OutUDec((unsigned short) gyraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
    
-   // Z axis	 
-   SCI1_OutString(" Gz:"); 
-   SCI1_OutUDec((unsigned short) gzraw[0]) ;      
-   SCI1_OutString("\r\n");
+   // Z axis	      
+   if(gzraw[0] <= 0){
+    negGzRaw = -1*gzraw[0];
+    SCI1_OutString(" Gz: -");
+    SCI1_OutUDec((int) negGzRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Gz:"); 
+    SCI1_OutUDec((unsigned short) gzraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
    
-   // ACCELEROMETER ADCL345 --------------------------------------------------------------------------------------------------------------
+   
+   
+   // ACCELEROMETER ADCL345 -------------------------------------------------------------------------------------------------------------
+   // acceleroShortcut
    
    // Obtain raw data
    adxl345_getrawdata( &axraw[0], &ayraw[0], &azraw[0]) ;  
 
-   // X axis
-   SCI1_OutString("Accel Ax:");
-   SCI1_OutUDec((unsigned short) axraw[0]); 
+   // Newline
    SCI1_OutString("\r\n"); 
+   // X axis   
+   if(axraw[0] <= 0){
+    negAxRaw = -1*axraw[0];
+    SCI1_OutString(" Ax: -");
+    SCI1_OutUDec((int) negAxRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Ax:"); 
+    SCI1_OutUDec((unsigned short) axraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
+   
    // Y axis 
-   SCI1_OutString(" Ay:"); 
-   SCI1_OutUDec((unsigned short) ayraw[0]) ;
-   SCI1_OutString("\r\n"); 
-   // Z axis	 
-   SCI1_OutString(" Az:"); 
-   SCI1_OutUDec((unsigned short) azraw[0]) ;       
-   SCI1_OutString("\r\n"); 
+   if(ayraw[0] <= 0){
+    negAyRaw = -1*ayraw[0];
+    SCI1_OutString(" Ay: -");
+    SCI1_OutUDec((int) negAyRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Ay:"); 
+    SCI1_OutUDec((unsigned short) ayraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
+  
+   // Z axis	      
+   if(azraw[0] <= 0){
+    negAzRaw = -1*azraw[0];
+    SCI1_OutString(" Az: -");
+    SCI1_OutUDec((int) negAzRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Az:"); 
+    SCI1_OutUDec((unsigned short) azraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
+   
+   
+   // TILT FROM ACCELEROMETER ------------------------------------------------------------------------------------------------------------------------
+   // acceleroTiltingShortcut
+   elevation = (float) atan2(azraw[0],axraw[0])*180/3.142;
+   if(elevation <= 0){
+    negativeElevation = -1*elevation;
+    SCI1_OutString(" Elevation: -");
+    SCI1_OutUDec((int) negativeElevation) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Elevation:"); 
+    SCI1_OutUDec((int) elevation) ;
+    SCI1_OutString("\r\n"); 
+   }
+                            
    
    // MAGNETOMETER HM5883 ----------------------------------------------------------------------------------------------------------------
    
+   
+   // magnetoShortcut
    // Obtain raw data
    hm5883_getrawdata(&mxraw[0], &myraw[0], &mzraw[0]);
-
-   // X axis 
-   SCI1_OutString("Magn Mx:");
-   SCI1_OutUDec((unsigned short) mxraw[0]);
-   SCI1_OutString("\r\n");
-   // Y axis
-   SCI1_OutString(" My:"); 
-   SCI1_OutUDec((unsigned short) myraw[0]);
-   SCI1_OutString("\r\n");
-   // Z axis
-   SCI1_OutString(" Mz:"); 
-   SCI1_OutUDec((unsigned short) mzraw[0]);      
-   SCI1_OutString("\r\n\r\n\r\n");
+   
+   
+   // Newline
+   SCI1_OutString("\r\n"); 
+   // X axis   
+   if(mxraw[0] <= 0){
+    negMxRaw = -1*mxraw[0];
+    SCI1_OutString(" Mx: -");
+    SCI1_OutUDec((int) negMxRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Mx:"); 
+    SCI1_OutUDec((unsigned short) mxraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
+   
+   // Y axis 
+   if(myraw[0] <= 0){
+    negMyRaw = -1*myraw[0];
+    SCI1_OutString(" My: -");
+    SCI1_OutUDec((int) negMyRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" My:"); 
+    SCI1_OutUDec((unsigned short) myraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
+   
+   // Z axis	      
+   if(mzraw[0] <= 0){
+    negMzRaw = -1*mzraw[0];
+    SCI1_OutString(" Mz: -");
+    SCI1_OutUDec((int) negMzRaw) ;
+    SCI1_OutString("\r\n");
+   } else {
+    SCI1_OutString(" Mz:"); 
+    SCI1_OutUDec((unsigned short) mzraw[0]);
+    SCI1_OutString("\r\n"); 
+   }
+   
+   //=======================================================================
+   // ORIENTATION FROM MAGNETOMETER
+   // magnetoOrientationShortcut
+   heading = (float) atan2(myraw[0], mxraw[0])*180/3.142;
+   
+   // In Australia, NSW the declination is 12 degrees, hence adjust to +12
+   heading = heading + 12;
+   
+    if(heading <= 0){
+    negativeHeading = -1*heading;
+    SCI1_OutString(" Heading: -");
+    SCI1_OutUDec((int) negativeHeading) ;
+    SCI1_OutString("\r\n");
+    } else {
+    SCI1_OutString(" Heading:"); 
+    SCI1_OutUDec((int) heading) ;
+    SCI1_OutString("\r\n");
+    }
+    
+    SCI1_OutString("=============================================\n\n");
+   /* heading = getHeading(&mxraw[0], &myraw[0]);
+   
+   // Heading
+   SCI1_OutString(" Heading:"); 
+   SCI1_OutUDec((float) heading);      
+   SCI1_OutString("\r\n\r\n\r\n");  */  
+   
    
     // PRINT TO LCD -----------------------------------------------------------------------------------------------------------------------------
+    // printLCDShortcut
+    /*
     openLCD();
     
     // Print the gyroscope information
@@ -233,14 +395,12 @@ void main(void) {
     putcLCD(myraw[0]);
     putsLCD("  Mag Z=");
     putcLCD(mzraw[0]);
-    cmd2LCD(0xC0);         // New line function
+    cmd2LCD(0xC0);         // New line function   
     
+    
+    */
     // FINISH PRINTING TO LCD ----------------------------------------------------------------------------------------------------------------
   }
-   
- // PRINT TO LCD -----------------------------------------------------------------------------------------------------------------------------
- 
-  //toPrint []= {gxraw[0],gyraw[0],gzraw[0],axraw[0],ayraw[0],azraw[0],mxraw[0],myraw[0],mzraw[0]};
  
  
   /*    Not using the laser IIC, not compatible with this lasr
@@ -338,6 +498,25 @@ void adxl345_getrawdata(int *axraw, int *ayraw, int *azraw){
 }  
   
 
+// obtainValueFromAccelero
+// To obtain value from accelerometer
+float getElevation(int *axraw, int *ayraw ,int *azraw){
+
+  float elevation;
+  signed int X,Y,Z;
+
+	// Change raw values to "g"
+  X = (signed int)(((signed int)axraw) * 3.9);
+  Y = (signed int)(((signed int)ayraw) * 3.9); 
+  Z = (signed int)(((signed int)azraw) * 3.9);
+	
+  // New Equation (by Gunawardena)
+  elevation = (double) (180 * atan ((float) X/sqrt(Y*Y + Z*Z))/3.142);
+
+	return elevation;
+}
+
+// GYRO --------------------------------------------------------------------------------------------------------------------------------------
 
 // test the precense of Gyro , should get 211 on return 
 // 
@@ -356,8 +535,7 @@ void gyro_test(void) {
 }
 
 
- //  Gyro Initialisation
- 
+ // Gyro InitialisatioN 
  void gyro_init (void) {
   
  int  res1;
@@ -395,11 +573,57 @@ buff[i+1]= iicreceivelast();
 	*gzraw = ((buff[5] << 8) | buff[4]);
 }
 
+
+// Function to get a set of gyro data WITH DPS 
+// Marco Salim, 13 May 2019
+void l3g4200d_getrawdataDPS(int *gxraw, int *gyraw, int *gzraw) {
+ 	uint8_t i = 0;
+	uint8_t buff[6];
+	int res1;
+	
+   res1=iicstart(gyro_wr);
+   res1=iictransmit(L3G4200D_OUT_XYZ_CONT );
+   res1= iicrestart(gyro_rd); 
+ 
+ iicswrcv();
+ 
+ for(i=0; i<4  ;i++) {
+  buff[i]=iicreceive();
+ }
+ 
+buff[i]= iicreceivem1();
+buff[i+1]= iicreceivelast();
+
+	*gxraw = ((buff[1] << 8) | buff[0]) * 0.07;
+	*gyraw = ((buff[3] << 8) | buff[2]) * 0.07;
+	*gzraw = ((buff[5] << 8) | buff[4]) * 0.07;
+}
+
+// Function to convert raw gyro data to data with DPS
+// Marco Salim, 13 May 2019
+
+/*float getDPS(int *graw){
+    
+    float gDps;
+    
+    gDps = graw * 0.07;
+    return gDps;
+    
+}*/
+
 // ********************
 
 
+// Function to get heading from magnetometer
+
+int getHeading(int *mxraw, int *myraw){
+
+  int heading;
 
 
+  heading =(atan2(170, mxraw[0]) * 180 / 3.142) - (atan2(myraw[0], mxraw[0]) * 180 / 3.142);
+  return heading;
+}  
 
  // Laser  initialisation, Eduardo nebot , 2/8/15 
  void laser_init (void) {
@@ -460,6 +684,7 @@ void delay1(uint16_t msec)
 
 /*  Interrupt   EMN *///=======================================================================
 
+// interruptGotoShortcut
 // interrupt(((0x10000-Vtimch7)/2)-1) void TC7_ISR(void){
 // the line above is to make it portable between differen
 // Freescale processors
