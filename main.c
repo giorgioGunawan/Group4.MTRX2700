@@ -1,17 +1,18 @@
 // DIRECTORIES:  CTRL + F    --> ADD THESE NAME TO JUMP TO THAT FUNCTION / PART
 
-// MAIN                  |   mainShortcut
-// GYRO                  |   gyroShortcut
-// ACCELERO              |  acceleroShortcut
-// MAGNETO               |  magnetoShortcut
-// MAG ORIENT            |  magnetoOrientationShortcut
-// LCD PRINT             |  printLCDShortcut
-// ACCELERO FUNCTION     |  obtainValueFromAccelero
-// ACCELERO TILT         |  acceleroTiltingShortcut
-// INTERRUPT VECTORS     |  interruptGotoShortcut
+// MAIN                                     |   mainShortcut
+// GYRO                                     |   gyroShortcut
+// ACCELERO                             |  acceleroShortcut
+// MAGNETO                             |  magnetoShortcut
+// MAG ORIENT                         |  magnetoOrientationShortcut
+// LCD PRINT                             |  printLCDShortcut
+// ACCELERO FUNCTION          |  obtainValueFromAccelero
+// ACCELERO TILT                     |  acceleroTiltingShortcut
+// INTERRUPT VECTORS           |  interruptGotoShortcut
 // FUNCTION DECLARATIONS | funcdecShortcut
-// KEYPAD INTERFACE      | keypadInterfaceShortcut
-// KEYPAD VALUE FUNC     | getValueShortcut
+// KEYPAD INTERFACE             | keypadInterfaceShortcut
+// KEYPAD VALUE FUNC          | getValueShortcut
+// LCD MESSAGES                    | LCDmessagesShortcut
 // 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -50,6 +51,7 @@
 #include "sci1.h"         // Header File - sci1.c function declaration not a built in
 #include "l3g4200.h"      // register's definitions    ( not used by ed )
 #include "LCD.h"
+#include "floatToStrFunc.h"
 
 volatile uint8_t alarmSignaled1 = 0; /* Flag set when alarm 1 signaled */
 volatile uint16_t currentTime1 = 0; /* variables private to timeout routines */
@@ -385,7 +387,7 @@ void main(void){
     // PRINT TO LCD -----------------------------------------------------------------------------------------------------------------------------
     // printLCDShortcut
         
-    // if keypad no input (keypadVal == 0)
+    // if keypad no input, staying at 0, print the main message
     if(keypadVal == 0){
       printMainMessage(); 
     }
@@ -396,45 +398,36 @@ void main(void){
     // gyroEl = 24.5;
     else if(keypadVal == 1){
     // printGyroInfo(float gyroAz,float gyroEl);
-    // printGyroInfo(12.4,44.6);      // DEBUGGING ONLY !!!!!!!!!!!!!!!!!
+        printGyroInfo(12.4,44.6);      // DEBUGGING ONLY !!!!!!!!!!!!!!!!!
     }
 
     // if keypad is 2 (accelero)
     // accelero value is elevation from previous function
     else if(keypadVal == 2){
     // printAcceleroInfo(elevation);
-    // printAcceleroInfo(12.3);     // DEBUGGING ONLY!!!!!!!!!!!!!!!!!
+        printAcceleroInfo(12.3);     // DEBUGGING ONLY!!!!!!!!!!!!!!!!!
     }
     
     // if keypad is 3 (magneto)
     // magneto information still in process so 
     // mock magneto value
     // magnetoAz = 17.8
-    // magentoEl = -70.4
+    // magentoEl = -70.5
     else if(keypadVal == 3){
     // printMagnetoInfo(float magnetoAz, float magnetoEl);
-    // printMagnetoInfo(12.4,44.6);      // DEBUGGING ONLY !!!!!!!!!!!!!!!!!
+        printMagnetoInfo(12.4,44.6);      // DEBUGGING ONLY !!!!!!!!!!!!!!!!!
     }
     
     // if keypad is 4, display distance
     // mock distance = 1.2m
     else if(keypadVal == 4){
-    // printDistance(1.2);
+        printDistance(1.2);
     }
     
     
     // FINISH PRINTING TO LCD ----------------------------------------------------------------------------------------------------------------
-  }
- 
- 
-  /*    Not using the laser IIC, not compatible with this lasr
-  laser_data (&Dist);
-  SCI1_OutString("\r\n laser:");
-  SCI1_OutUDec((unsigned short) Dist) ;
-  SCI1_OutString("\n\r");
-  */  
+  } 
 }
-
 // END MAIN ----------------------------------------------------------------------------------------------------------------------------
 
 
@@ -442,6 +435,7 @@ void main(void){
 
 // COMPLEMENTARY FUNCTIONS=============================================================
 // Print Main Message on LCD
+// LCDmessagesShortcut
 
 void LCDDelay(unsigned int time){
     unsigned int i, j;
@@ -470,11 +464,16 @@ void printMainMessage(void){
   // Write to LCD's second line
   putsLCD("3 MAGNET  4 DIST");
   
+  // Delay to make it stay
+  //LCDDelay(250);
+  
   // LASTLY CLEAR THE SCREEN
   cmd2LCD(0x01);
 }
 
 void printGyroInfo(float gyroAz,float gyroEl){
+
+  char gyroAzString[6], gyroElString[6];
 
   // First Open LCD
   openLCD();
@@ -488,8 +487,11 @@ void printGyroInfo(float gyroAz,float gyroEl){
   // Delay 
   LCDDelay(1);
   
+  // Change floating azimuth to string with 2 decimal points
+  floatToStr(gyroAz, gyroAzString, 2);
+  
   // Put the azimuth information on the first line
-  putcLCD(gyroAz);
+  putsLCD(gyroAzString);
   
   // New line same screen
   cmd2LCD(0xC0); 
@@ -500,8 +502,14 @@ void printGyroInfo(float gyroAz,float gyroEl){
   // Delay 
   LCDDelay(1);
   
+  // Chjange floating elevation to string with 2 decimal points
+  floatToStr(gyroEl,gyroElString,2);
+  
   // Put the azimuth information on the first line
-  putcLCD(gyroEl);
+  putsLCD(gyroElString);
+  
+  // Delay to make it stay 
+  //LCDDelay(250);
   
   // LASTLY CLEAR THE SCREEN
   cmd2LCD(0x01);
@@ -509,6 +517,8 @@ void printGyroInfo(float gyroAz,float gyroEl){
 
 void printAcceleroInfo(float elevation){
   
+  
+  char elevationString[6];
   // First Open LCD
   openLCD();
   
@@ -521,8 +531,13 @@ void printAcceleroInfo(float elevation){
   // Delay 
   LCDDelay(1);
   
+ // Chjange floating elevation to string with 2 decimal points
+  floatToStr(elevation,elevationString,2);
   // Put the azimuth information on the first line
-  putcLCD(elevation);
+  putsLCD(elevationString);
+  
+  // Delay to make it stay 
+  //LCDDelay(250);
   
   // LASTLY CLEAR THE SCREEN
   cmd2LCD(0x01);
@@ -530,6 +545,7 @@ void printAcceleroInfo(float elevation){
 
 void printMagnetoInfo(float magnetoAz,float magnetoEl){
 
+  char magnetoAzString[6], magnetoElString[6];
   // First Open LCD
   openLCD();
   
@@ -542,8 +558,11 @@ void printMagnetoInfo(float magnetoAz,float magnetoEl){
   // Delay 
   LCDDelay(1);
   
+  // Chjange floating azimuth  to string with 2 decimal points
+  floatToStr(magnetoAz,magnetoAzString,2);
+  
   // Put the azimuth information on the first line
-  putcLCD(magnetoAz);
+  putsLCD(magnetoAzString);
   
   // New line same screen
   cmd2LCD(0xC0); 
@@ -554,14 +573,23 @@ void printMagnetoInfo(float magnetoAz,float magnetoEl){
   // Delay 
   LCDDelay(1);
   
-  // Put the azimuth information on the first line
-  putcLCD(magnetoEl);
+  // Chjange floating elevation  to string with 2 decimal points
+  floatToStr(magnetoEl,magnetoElString,2);
+  
+  // Put the elevation information on the first line
+  putsLCD(magnetoElString);
+  
+  // Delay to make it stay 
+  //LCDDelay(250);
   
   // LASTLY CLEAR THE SCREEN
   cmd2LCD(0x01);
 }
 
 void printDistance(float distance){
+
+  char distanceString[6];
+  
   // First Open LCD
   openLCD();
   
@@ -574,8 +602,14 @@ void printDistance(float distance){
   // Delay 
   LCDDelay(1);
   
+   // Chjange floating distance to string with 2 decimal points
+  floatToStr(distance,distanceString,2);
+  
   // Put the azimuth information on the first line
-  putcLCD(distance);
+  putsLCD(distanceString);
+  
+  // Delay to make it stay 
+  //LCDDelay(250);
   
   // LASTLY CLEAR THE SCREEN
   cmd2LCD(0x01);
