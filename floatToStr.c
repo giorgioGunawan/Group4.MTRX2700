@@ -35,7 +35,7 @@ int intToStr (int num, char str[], int d){
 }
 
 // Converts a floating point number to string. 
-void floatToInt(float n, char *res, int afterpoint) 
+void floatToStr(float n, char *res, int afterpoint) 
 { 
     // Extract integer part 
     int ipart = (int)n; 
